@@ -1,6 +1,6 @@
 <script>
 import InteractWithUser from './User/mixins/InteractWithUser'
-import { useLocalStorage, StorageSerializers } from '@vueuse/core'
+import { useLocalStorage, useSessionStorage, StorageSerializers } from '@vueuse/core'
 import { token } from '../stores/useUser'
 
 export default {
@@ -23,6 +23,10 @@ export default {
         },
         cache: {
             type: String,
+        },
+        sessionCache: {
+            type: Boolean,
+            default: false,
         },
         callback: {
             type: Function,
@@ -56,7 +60,12 @@ export default {
             if (this.cache === undefined) {
                 return false
             }
-            this.data = useLocalStorage(this.cachePrefix + this.cache, null, { serializer: StorageSerializers.object }).value
+
+            if (this.sessionCache) {
+                this.data = useSessionStorage(this.cachePrefix + this.cache, null, { serializer: StorageSerializers.object }).value
+            } else {
+                this.data = useLocalStorage(this.cachePrefix + this.cache, null, { serializer: StorageSerializers.object }).value
+            }
 
             return this.data
         },
@@ -101,7 +110,11 @@ export default {
                 this.data = this.callback ? await this.callback(response) : response.data.data
 
                 if (this.cache) {
-                    useLocalStorage(this.cachePrefix + this.cache, null, { serializer: StorageSerializers.object }).value = this.data
+                    if (this.sessionCache) {
+                        useSessionStorage(this.cachePrefix + this.cache, null, { serializer: StorageSerializers.object }).value = this.data
+                    } else {
+                        useLocalStorage(this.cachePrefix + this.cache, null, { serializer: StorageSerializers.object }).value = this.data
+                    }
                 }
             } catch (e) {
                 Notify(window.config.translations.errors.wrong, 'warning')
